@@ -103,7 +103,7 @@ def get_args_parser():
                         help='How to apply mixup/cutmix params. Per "batch", "pair", or "elem"')
 
     # * Finetuning params
-    parser.add_argument('--finetune', default='/autofs/vast/qtim/datasets/private/mee_parkinsons/models/RETFound_cfp_weights.pth',type=str,
+    parser.add_argument('--finetune', default='/autofs/space/crater/datasets/private/mee_parkinsons/models/RETFound_cfp_weights.pth',type=str,
                         help='finetune from checkpoint')
     parser.add_argument('--task', default='',type=str,
                         help='finetune from checkpoint')
