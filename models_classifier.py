@@ -26,24 +26,24 @@ class ViTClassifier(nn.Module):
     ):
         super().__init__()
 
-        self.feature_extractor = models_vit.__dict__[vit_arch](**vit_kwargs)
+        self.model = models_vit.__dict__[vit_arch](**vit_kwargs)
 
         if vit_weights:
             checkpoint = torch.load(vit_weights, map_location="cpu")
 
             print(f"Loading ViT weights from {vit_weights}")
             checkpoint_model = checkpoint["model"]
-            state_dict = self.feature_extractor.state_dict()
+            state_dict = self.model.state_dict()
             for k in ["head.weight", "head.bias"]:
                 if k in checkpoint_model and checkpoint_model[k].shape != state_dict[k].shape:
                     print(f"Removing key {k} from pretrained checkpoint")
                     del checkpoint_model[k]
 
             # interpolate position embedding
-            interpolate_pos_embed(self.feature_extractor, checkpoint_model)
+            interpolate_pos_embed(self.model, checkpoint_model)
 
             # load pre-trained model
-            msg = self.feature_extractor.load_state_dict(checkpoint_model, strict=False)
+            msg = self.model.load_state_dict(checkpoint_model, strict=False)
             # print(msg)
 
             if vit_kwargs.get("global_pool", False):
@@ -52,18 +52,19 @@ class ViTClassifier(nn.Module):
                 assert set(msg.missing_keys) == {"head.weight", "head.bias"}
 
             # manually initialize fc layer
-            trunc_normal_(self.feature_extractor.head.weight, std=2e-5)
+            trunc_normal_(self.model.head.weight, std=2e-5)
 
-        self.mlp = models_vit.Mlp(
-            in_features=self.feature_extractor.head.out_features,
+        classifier_head = models_vit.Mlp(
+            in_features=self.model.head.in_features,
             hidden_features=hidden_features,
             out_features=num_classes,
             act_layer=activation,
             drop=dropout
         )
 
-    def forward(self, x: torch.Tensor):
-        features = self.feature_extractor(x)
-        logits = self.mlp(features)
-        return logits
+        self.model.head = classifier_head
 
+
+
+    def forward(self, x: torch.Tensor):
+        return self.model(x)
