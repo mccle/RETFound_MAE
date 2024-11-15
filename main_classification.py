@@ -32,6 +32,39 @@ parser.add_argument("--epochs", type=int, default=60)
 parser.add_argument("--batch-size", type=int, default=16)
 parser.add_argument('--num_workers', default=10, type=int)
 
+# Augmentation parameters
+parser.add_argument('--color_jitter', type=float, default=None, metavar='PCT',
+                    help='Color jitter factor (enabled only when not using Auto/RandAug)')
+parser.add_argument('--aa', type=str, default='rand-m9-mstd0.5-inc1', metavar='NAME',
+                    help='Use AutoAugment policy. "v0" or "original". " + "(default: rand-m9-mstd0.5-inc1)'),
+parser.add_argument('--smoothing', type=float, default=0.1,
+                    help='Label smoothing (default: 0.1)')
+
+# * Random Erase params
+parser.add_argument('--reprob', type=float, default=0.25, metavar='PCT',
+                    help='Random erase prob (default: 0.25)')
+parser.add_argument('--remode', type=str, default='pixel',
+                    help='Random erase mode (default: "pixel")')
+parser.add_argument('--recount', type=int, default=1,
+                    help='Random erase count (default: 1)')
+parser.add_argument('--resplit', action='store_true', default=False,
+                    help='Do not random erase first (clean) augmentation split')
+
+# * Mixup params
+parser.add_argument('--mixup', type=float, default=0,
+                    help='mixup alpha, mixup enabled if > 0.')
+parser.add_argument('--cutmix', type=float, default=0,
+                    help='cutmix alpha, cutmix enabled if > 0.')
+parser.add_argument('--cutmix_minmax', type=float, nargs='+', default=None,
+                    help='cutmix min/max ratio, overrides alpha and enables cutmix if set (default: None)')
+parser.add_argument('--mixup_prob', type=float, default=1.0,
+                    help='Probability of performing mixup or cutmix when either/both is enabled')
+parser.add_argument('--mixup_switch_prob', type=float, default=0.5,
+                    help='Probability of switching to cutmix when both mixup and cutmix enabled')
+parser.add_argument('--mixup_mode', type=str, default='batch',
+                    help='How to apply mixup/cutmix params. Per "batch", "pair", or "elem"')
+
+
 def main():
     args = parser.parse_args()
 
@@ -64,13 +97,15 @@ def main():
         batch_size=args.batch_size,
         num_workers=args.num_workers,
         drop_last=True,
+        #collate_fn=lambda x: (torch.concatenate([s.unsqueeze(0) for s in x[0]]), torch.concatenate([s.unsqueeze(0) for s in x[1]]))
     )
 
     data_loader_val = torch.utils.data.DataLoader(
         dataset_val,
         batch_size=args.batch_size,
         num_workers=args.num_workers,
-        drop_last=False
+        drop_last=False,
+        #collate_fn=lambda x: (torch.concatenate([s.unsqueeze(0) for s in x[0]]), torch.concatenate([s.unsqueeze(0) for s in x[1]]))
     )
 
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.wd)
@@ -98,10 +133,15 @@ def main():
         metrics = {}
 
         model.train()
-        for samples, targets in data_loader_train: #tqdm(data_loader_train, desc=f"Training Epoch {epoch}"):
-            print(samples[0].size())
+        for batch in tqdm(data_loader_train, desc=f"Training Epoch {epoch}"):
+            #print(samples[0].size())
 
-            samples, targets = samples.to(device), targets.to(device)
+            print(len(batch))
+            print(batch)
+
+            samples, targets = batch
+
+            samples, targets = torch.concat(samples).to(device), targets.to(device)
 
             optimizer.zero_grad()
             logits = model(samples)
@@ -124,7 +164,7 @@ def main():
 
         with torch.no_grad():
             model.eval()
-            for samples, targets in data_loader_val: # tqdm(data_loader_val, desc="Validating Epoch {epoch}"):
+            for samples, targets in tqdm(data_loader_val, desc="Validating Epoch {epoch}"):
                 samples, targets = samples.to(device), targets.to(device)
 
                 logits = model(samples)
