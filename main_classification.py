@@ -97,7 +97,7 @@ def main():
         batch_size=args.batch_size,
         num_workers=args.num_workers,
         drop_last=True,
-        #collate_fn=lambda x: (torch.concatenate([s.unsqueeze(0) for s in x[0]]), torch.concatenate([s.unsqueeze(0) for s in x[1]]))
+        shuffle=True
     )
 
     data_loader_val = torch.utils.data.DataLoader(
@@ -105,7 +105,6 @@ def main():
         batch_size=args.batch_size,
         num_workers=args.num_workers,
         drop_last=False,
-        #collate_fn=lambda x: (torch.concatenate([s.unsqueeze(0) for s in x[0]]), torch.concatenate([s.unsqueeze(0) for s in x[1]]))
     )
 
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.wd)
@@ -136,12 +135,12 @@ def main():
         for batch in tqdm(data_loader_train, desc=f"Training Epoch {epoch}"):
             #print(samples[0].size())
 
-            print(len(batch))
-            print(batch)
+            # print(len(batch))
+            # print(batch)
 
             samples, targets = batch
 
-            samples, targets = torch.concat(samples).to(device), targets.to(device)
+            samples, targets = samples.to(device), targets.to(device)
 
             optimizer.zero_grad()
             logits = model(samples)

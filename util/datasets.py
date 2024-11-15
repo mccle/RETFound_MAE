@@ -4,6 +4,7 @@
 # --------------------------------------------------------
 
 import numpy as np
+import torch
 from torchvision import datasets, transforms
 from timm.data import create_transform
 from timm.data.constants import IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD
@@ -31,13 +32,13 @@ class CSVDataset(VisionDataset):
 
         partition_df = df[df["partition"] == partition]
 
-        self.file_paths = partition_df["jpgfile"]
+        self.file_paths = list(partition_df["jpgfile"])
 
         if "label" in partition_df.keys():
-            self.labels = partition_df["label"]
+            self.labels = [torch.tensor([float(l)]) for l in partition_df["label"]]
 
         else:
-            self.labels = [1] * len(self.file_paths)
+            self.labels = [torch.tensor([1.0])] * len(self.file_paths)
 
         assert len(self.file_paths) == len(self.labels), "Mismatch between number of files and labels"
 
