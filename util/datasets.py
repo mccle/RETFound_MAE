@@ -63,7 +63,11 @@ class CSVDataset(VisionDataset):
             if self.transform:
                 img = self.transform(img)
 
-                img[:] = float("NaN")
+                # img[:] = float("NaN")
+
+            label = torch.tensor([float("NaN")])
+
+            return img, label
 
         if self.target_transform and label is not None:
             label = self.target_transform(label)

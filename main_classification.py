@@ -29,7 +29,7 @@ parser.add_argument("--lr_step", type=int, default=30)
 parser.add_argument("--lr_factor", type=float, default=0.1)
 parser.add_argument("--wd", type=float, default=4e-6)
 parser.add_argument("--epochs", type=int, default=60)
-parser.add_argument("--batch-size", type=int, default=16)
+parser.add_argument("--batch-size", type=int, default=64)
 parser.add_argument('--num_workers', default=10, type=int)
 
 # Augmentation parameters
@@ -102,7 +102,7 @@ def main():
 
     data_loader_val = torch.utils.data.DataLoader(
         dataset_val,
-        batch_size=args.batch_size,
+        batch_size=1,
         num_workers=args.num_workers,
         drop_last=False,
     )
@@ -132,15 +132,11 @@ def main():
         metrics = {}
 
         model.train()
-        for batch in tqdm(data_loader_train, desc=f"Training Epoch {epoch}"):
-            #print(samples[0].size())
+        for samples, targets in tqdm(data_loader_train, desc=f"Training Epoch {epoch}"):
+            samples, targets = samples[~torch.isnan(targets)].to(device), targets[~torch.isnan(targets)].to(device)
 
-            # print(len(batch))
-            # print(batch)
-
-            samples, targets = batch
-
-            samples, targets = samples.to(device), targets.to(device)
+            if len(samples) == 0:
+                continue
 
             optimizer.zero_grad()
             logits = model(samples)
@@ -164,7 +160,10 @@ def main():
         with torch.no_grad():
             model.eval()
             for samples, targets in tqdm(data_loader_val, desc="Validating Epoch {epoch}"):
-                samples, targets = samples.to(device), targets.to(device)
+                samples, targets = samples[~torch.isnan(targets)].to(device), targets[~torch.isnan(targets)].to(device)
+
+                if len(samples) == 0:
+                    continue
 
                 logits = model(samples)
                 loss = loss_fn(logits, targets)
