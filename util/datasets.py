@@ -29,22 +29,7 @@ class CSVDataset(VisionDataset):
         if "partition" not in df.keys():
             df["partition"] = [partition] * df.shape[0]
 
-        partition_df = df[df["partition"] == partition]#.reset_index(drop=True)
-
-        # if not assume_valid:
-        #     valid = []
-        #
-        #     for img in tqdm(partition_df["jpgfile"], desc="Validating file reading"):
-        #         try:
-        #             Image.open(img)
-        #             valid.append(True)
-        #
-        #         except Exception:
-        #             valid.append(False)
-        #
-        #     partition_df["valid"] = valid
-        #
-        #     partition_df = partition_df[partition_df["valid"]]
+        partition_df = df[df["partition"] == partition]
 
         self.file_paths = partition_df["jpgfile"]
 
@@ -69,12 +54,10 @@ class CSVDataset(VisionDataset):
             if self.transform:
                 img = self.transform(img)
 
-        except Exception:
-            logging.warning('Image file is truncated: {}'.format(file_path))
+        except Exception as error:
+            logging.warning(f"{file_path} could not be opened due to {error}")
 
-            PIL.ImageFile.LOAD_TRUNCATED_IMAGES = True
-            img = PIL.Image.open(file_path).convert("RGB")
-            PIL.ImageFile.LOAD_TRUNCATED_IMAGES = False
+            img = PIL.Image.fromarray(np.ones((224,224))).convert("RGB")
 
             if self.transform:
                 img = self.transform(img)

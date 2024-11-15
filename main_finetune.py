@@ -170,7 +170,7 @@ def main(args):
     dataset_val = build_dataset(partition='val', args=args)
     dataset_test = build_dataset(partition='test', args=args)
 
-    if True:  # args.distributed:
+    if args.distributed:
         num_tasks = misc.get_world_size()
         global_rank = misc.get_rank()
         sampler_train = torch.utils.data.DistributedSampler(

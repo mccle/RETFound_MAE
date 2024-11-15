@@ -30,6 +30,7 @@ Markdown==3.6
 MarkupSafe==2.1.5
 matplotlib==3.9.0
 matplotlib-inline==0.1.7
+monai==1.4.0
 nest-asyncio==1.6.0
 networkx==3.3
 numpy==1.26.4

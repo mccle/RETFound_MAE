@@ -48,6 +48,7 @@ timm = "*"
 tqdm = ">4.62.1"
 matplotlib = "*"
 visidata = "*"
+monai = "^1.4.0"
 
 
 [tool.poetry.group.dev.dependencies]
