@@ -243,8 +243,8 @@ def main():
         torch.save(
             {
                 "epoch": epoch,
-                "model": model.state_dict(),
-                "optimizer": optimizer.state_dict(),
+                "model": model,
+                "optimizer": optimizer,
                 "AUROC/val": metrics["AUROC/val"],
             },
             checkpoint_dir / "last_checkpoint.pt"
@@ -256,8 +256,8 @@ def main():
             torch.save(
                 {
                     "epoch": epoch,
-                    "model_state_dict": model.state_dict(),
-                    "optimizer_state_dict": optimizer.state_dict(),
+                    "model": model,
+                    "optimizer_state_dict": optimizer,
                     "AUROC/val": metrics["AUROC/val"],
                 },
                 checkpoint_dir / "best_checkpoint.pt"
