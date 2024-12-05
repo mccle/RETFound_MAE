@@ -21,6 +21,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("csv", type=Path)
 parser.add_argument("checkpoint")
 parser.add_argument("output_csv", metavar="output-csv", type=Path)
+parser.add_argument("--partition", choices=["val", "test", "all"], default="test")
 parser.add_argument(
     "--classifier-architecture",
     type=str,
@@ -89,7 +90,7 @@ def main():
     device = torch.device("cuda:0" if (torch.cuda.is_available() and args.gpu) else "cpu")
     model.to(device)
 
-    dataset_test = build_dataset(partition='test', args=args)
+    dataset_test = build_dataset(partition=args.partition, args=args)
 
     data_loader_test = torch.utils.data.DataLoader(
         dataset_test,

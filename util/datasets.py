@@ -30,7 +30,11 @@ class CSVDataset(VisionDataset):
         if "partition" not in df.keys():
             df["partition"] = [partition] * df.shape[0]
 
-        partition_df = df[df["partition"] == partition]
+        if partition != "all":
+            partition_df = df[df["partition"] == partition]
+
+        else:
+            partition_df = df
 
         self.file_paths = list(partition_df["jpgfile"])
 
