@@ -1,26 +1,19 @@
 import argparse
 import torch
-# import numpy as np
+
+from monai.metrics import ROCAUCMetric, ConfusionMatrixMetric
 from csv import DictWriter
-
-
-from torch.utils.tensorboard import SummaryWriter
 from util.datasets import build_dataset
-from monai.utils import set_determinism
-from monai.metrics import ConfusionMatrixMetric, ROCAUCMetric
-from models_classifier import ViTClassifier
 from models_vit import vit_large_patch16
 from pathlib import Path
 from tqdm import tqdm
-from torch.utils.data import WeightedRandomSampler
-from torchvision.models import resnet18
 from copy import deepcopy
 
 
 parser = argparse.ArgumentParser()
 parser.add_argument("csv", type=Path)
 parser.add_argument("checkpoint")
-parser.add_argument("output_csv", metavar="output-csv", type=Path)
+parser.add_argument("--output-csv", metavar="output-csv", type=Path, default=None)
 parser.add_argument("--partition", choices=["val", "test", "all"], default="test")
 parser.add_argument(
     "--classifier-architecture",
@@ -52,31 +45,8 @@ def main():
     checkpoint = torch.load(args.checkpoint, map_location="cpu")
     # print(checkpoint.keys())
 
-    if args.classifier_architecture == "ViTClassifier": #, "resnet18"]:
-        # model = ViTClassifier(
-        #     num_classes=1, # args.num_classes,
-        #     hidden_features=args.hidden_features,
-        #     dropout=args.dropout,
-        #     activation=args.activation,
-        #     vit_arch=args.vit_architecture,
-        #     vit_kwargs={
-        #         "img_size": args.input_size,
-        #         "num_classes": args.vit_classes,
-        #         "drop_path_rate": args.vit_drop,
-        #         "global_pool": args.vit_non_global_pool
-        #     },
-        #     vit_weights=args.vit_weights,
-        #     freeze_feature_extraction=args.freeze_vit
-        # )
-        # model.load_state_dict(checkpoint["model_state_dict"])
-
+    if args.classifier_architecture in ["ViTClassifier", "resnet18"]:
         model = checkpoint["model"]
-
-    elif args.classifier_architecture == "resnet18":
-        model = resnet18()
-        model.fc = torch.nn.Linear(in_features=512, out_features=1, bias=True)
-        model.load_state_dict(checkpoint["model_state_dict"])
-
 
     elif args.classifier_architecture == "RETFoundClassifier":
         model = vit_large_patch16(
@@ -102,34 +72,67 @@ def main():
     file_paths = deepcopy(dataset_test.file_paths)
     # rows = []
 
-    writer = DictWriter(
-        args.output_csv.open("w", newline=""),
-        fieldnames=["logits", "label", "jpgfile"]
-    )
+    output_csv = args.output_csv
 
-    writer.writeheader()
+    if output_csv:
+        writer = DictWriter(
+            args.output_csv.open("w", newline=""),
+            fieldnames=["logits", "label", "jpgfile"]
+        )
+
+        writer.writeheader()
+
+    auroc = ROCAUCMetric()
+    accuracy = ConfusionMatrixMetric(metric_name="accuracy")
+    balanced_accuracy = ConfusionMatrixMetric(metric_name="balanced_accuracy")
+
 
     with torch.no_grad():
         model.eval()
-        for samples, targets in tqdm(data_loader_test, desc="Running inference on test set"):
-            samples, targets = samples.to(device), targets.to(device)
+        for samples, labels in tqdm(data_loader_test, desc=f"Running inference on {args.partition} partition with {device}"):
+            samples, labels = samples.to(device), labels.to(device)
 
-            logits = model(samples)
+            batch_logits = model(samples)
 
-            for l, t in zip(logits, targets):
-                row = {
-                    "logits": l.tolist(),
-                    "label": t.tolist(),
-                    "jpgfile": file_paths.pop(0)
-                }
+            for logits, label in zip(batch_logits, labels):
+                jpg = file_paths.pop(0)
 
-                writer.writerow(row)
+                # skip unreadable files
+                if torch.isnan(label):
+                    continue
 
-                #rows.append(row)
+                if output_csv:
+                    row = {
+                        "logits": logits.tolist(),
+                        "label": label.tolist(),
+                        "jpgfile": jpg
+                    }
 
-            # break
+                    writer.writerow(row)
 
-    #print(rows)
+                if logits.size(0) == 1:
+                    logits = logits.reshape(1, 1)
+                    label = label.reshape(1, 1)
+
+                    auroc(torch.sigmoid(logits), label)
+                    accuracy(torch.round(torch.sigmoid(logits)), label)
+                    balanced_accuracy(torch.round(torch.sigmoid(logits)), label)
+
+                elif logits.size(0) == 2:
+                    logits = logits.reshape(1, 2)
+                    label = label.reshape(1, 1)
+
+                    auroc(torch.softmax(logits, dim=1)[..., 0], label)
+                    accuracy(torch.argmax(torch.softmax(logits, dim=1)).reshape((1, 1)), label)
+                    balanced_accuracy(torch.argmax(torch.softmax(logits, dim=1)).reshape((1, 1)), label)
+
+
+    print({
+        "auroc": auroc.aggregate(),
+        "accuracy": accuracy.aggregate()[0].item(),
+        "balanced_accuracy": balanced_accuracy.aggregate()[0].item(),
+    })
+
 
 
 if __name__ == "__main__":
