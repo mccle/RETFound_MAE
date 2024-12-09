@@ -12,7 +12,7 @@ from copy import deepcopy
 
 parser = argparse.ArgumentParser()
 parser.add_argument("csv", type=Path)
-parser.add_argument("checkpoint")
+parser.add_argument("checkpoint", type=Path)
 parser.add_argument("--output-csv", metavar="output-csv", type=Path, default=None)
 parser.add_argument("--partition", choices=["val", "test", "all"], default="test")
 parser.add_argument(
@@ -25,17 +25,7 @@ parser.add_argument(
         "resnet18"
     ]
 )
-parser.add_argument("--hidden-features", type=int, default=512)
-parser.add_argument("--dropout", type=float, default=0.2)
-parser.add_argument("--activation", type=str, default="GELU")
-parser.add_argument("--vit-architecture", type=str, default="vit_large_patch16")
 parser.add_argument("--input-size", type=int, default=224)
-parser.add_argument("--vit-classes", type=int, default=1000)
-parser.add_argument("--vit-drop", type=float, default=0.1)
-parser.add_argument("--vit-non-global-pool", action="store_false")
-parser.add_argument("--vit-weights", type=str, default='/autofs/space/crater_001/datasets/private/mee_parkinsons/models/RETFound_cfp_weights.pth')
-#parser.add_argument("--resnet", action="store_true")
-parser.add_argument("--freeze-vit", action="store_true")
 parser.add_argument("--batch-size", type=int, default=80)
 parser.add_argument('--num-workers', default=10, type=int)
 parser.add_argument("--gpu", action="store_true")
@@ -70,7 +60,6 @@ def main():
     )
 
     file_paths = deepcopy(dataset_test.file_paths)
-    # rows = []
 
     output_csv = args.output_csv
 
