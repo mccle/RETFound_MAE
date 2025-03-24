@@ -37,6 +37,7 @@ parser.add_argument("--lr-factor", type=float, default=0.1)
 parser.add_argument("--wd", type=float, default=4e-6)
 parser.add_argument("--epochs", type=int, default=60)
 parser.add_argument("--batch-size", type=int, default=80)
+parser.add_argument("--num-batches", type=int, default=200)
 parser.add_argument('--num-workers', default=10, type=int)
 
 # Augmentation parameters
@@ -160,12 +161,14 @@ def main():
     train_iter = 1
     val_iter = 1
 
+    n_batches = min(args.num_batches, len(data_loader_train))
+
     for epoch in range(1, args.epochs + 1):
         metrics = {}
 
         train_losses = []
         model.train()
-        for samples, targets in tqdm(data_loader_train, desc=f"Training Epoch {epoch}"):
+        for i, (samples, targets) in enumerate(tqdm(data_loader_train, desc=f"Training Epoch {epoch}", total=n_batches)):
             samples, targets = samples[~torch.isnan(targets).resize(targets.size(0))].to(device), targets[~torch.isnan(targets)].to(device)
 
             if len(samples) == 0:
@@ -186,6 +189,9 @@ def main():
 
             balanced_accuracy((probs > 0.5).float(), targets)
             auroc(probs, targets)
+
+            if i + 1 == n_batches:
+                break
 
         metrics["MeanLoss/train"] = np.mean(train_losses)
 
