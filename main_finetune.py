@@ -103,7 +103,7 @@ def get_args_parser():
                         help='How to apply mixup/cutmix params. Per "batch", "pair", or "elem"')
 
     # * Finetuning params
-    parser.add_argument('--finetune', default='/autofs/space/crater/datasets/private/mee_parkinsons/models/RETFound_cfp_weights.pth',type=str,
+    parser.add_argument('--finetune', default='/autofs/space/crater_001/datasets/private/mee_parkinsons/models/RETFound_cfp_weights.pth',type=str,
                         help='finetune from checkpoint')
     parser.add_argument('--task', default='',type=str,
                         help='finetune from checkpoint')
@@ -170,6 +170,8 @@ def main(args):
     dataset_val = build_dataset(partition='val', args=args)
     dataset_test = build_dataset(partition='test', args=args)
 
+    args.distributed = True
+
     if args.distributed:
         num_tasks = misc.get_world_size()
         global_rank = misc.get_rank()
@@ -197,6 +199,7 @@ def main(args):
         else:
             sampler_test = torch.utils.data.SequentialSampler(dataset_test)
 
+    global_rank = misc.get_rank()
 
     if global_rank == 0 and args.log_dir is not None and not args.eval:
         os.makedirs(args.log_dir, exist_ok=True)
@@ -290,9 +293,9 @@ def main(args):
     print("accumulate grad iterations: %d" % args.accum_iter)
     print("effective batch size: %d" % eff_batch_size)
 
-    if args.distributed:
-        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu])
-        model_without_ddp = model.module
+    # if args.distributed:
+    #     model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu])
+    #     model_without_ddp = model.module
 
     # build optimizer with layer-wise lr decay (lrd)
     param_groups = lrd.param_groups_lrd(model_without_ddp, args.weight_decay,

@@ -15,7 +15,7 @@ def ViTClassifier(
     activation: Literal["GELU", "ReLU"] = "GELU",
     vit_arch: str = "vit_large_patch16",
     vit_kwargs: dict = {
-        "input_size": 224,
+        "img_size": (512, 1024),
         "num_classes": 1000,
         "drop_path_rate": 0.1,
         "global_pool": True
@@ -36,7 +36,7 @@ def ViTClassifier(
                 print(f"Removing key {k} from pretrained checkpoint")
                 del checkpoint_model[k]
 
-        interpolate_pos_embed(model, checkpoint_model)
+        interpolate_pos_embed(model, checkpoint_model, vit_kwargs["img_size"])
 
         msg = model.load_state_dict(checkpoint_model, strict=False)
 

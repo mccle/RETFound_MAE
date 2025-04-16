@@ -5,17 +5,16 @@
 
 import numpy as np
 import torch
-from torchvision import datasets, transforms
-from timm.data import create_transform
-from timm.data.constants import IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD
-
 import pandas as pd
 import PIL
 import logging
-# from PIL import Image
+
+from torchvision import transforms #, datasets
+from timm.data import create_transform
+from timm.data.constants import IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD
 from torchvision.datasets import VisionDataset
-from tqdm import tqdm
-# from torchvision import transforms
+# from tqdm import tqdm
+from timm.data.transforms import CenterCropOrPad
 
 class CSVDataset(VisionDataset):
     def __init__(self, csv, partition, transform=None, target_transform=None):
@@ -79,7 +78,6 @@ class CSVDataset(VisionDataset):
         return img, label
 
 
-
 def build_dataset(partition, args):
 
     is_train = partition == "train"
@@ -110,17 +108,10 @@ def build_transform(is_train, args):
         )
         return transform
 
-    # eval transform
-    t = []
-    if args.input_size <= 224:
-        crop_pct = 224 / 256
-    else:
-        crop_pct = 1.0
-    size = int(args.input_size / crop_pct)
-    t.append(
-        transforms.Resize(size, interpolation=transforms.InterpolationMode.BICUBIC),
-    )
-    t.append(transforms.CenterCrop(args.input_size))
-    t.append(transforms.ToTensor())
-    t.append(transforms.Normalize(mean, std))
-    return transforms.Compose(t)
+    return transforms.Compose([
+        # CenterCropOrPad(args.input_size[1:]),
+        transforms.Resize(args.input_size[1:]),
+        transforms.ToTensor(),
+        transforms.Normalize(mean, std),
+    ])
+

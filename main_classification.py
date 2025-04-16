@@ -23,7 +23,7 @@ parser.add_argument("--hidden-features", type=int, default=512)
 parser.add_argument("--dropout", type=float, default=0.2)
 parser.add_argument("--activation", type=str, default="GELU")
 parser.add_argument("--vit-architecture", type=str, default="vit_large_patch16")
-parser.add_argument("--input-size", type=int, default=224)
+parser.add_argument("--input-size", nargs=3, type=int, default=(3, 512, 1024))
 parser.add_argument("--vit-classes", type=int, default=1000)
 parser.add_argument("--vit-drop", type=float, default=0.1)
 parser.add_argument("--vit-non-global-pool", action="store_false")
@@ -36,7 +36,7 @@ parser.add_argument("--lr-step", type=int, default=15)
 parser.add_argument("--lr-factor", type=float, default=0.1)
 parser.add_argument("--wd", type=float, default=4e-6)
 parser.add_argument("--epochs", type=int, default=60)
-parser.add_argument("--batch-size", type=int, default=80)
+parser.add_argument("--batch-size", type=int, default=32)
 parser.add_argument("--num-batches", type=int, default=200)
 parser.add_argument('--num-workers', default=10, type=int)
 
@@ -92,7 +92,7 @@ def main():
             activation=args.activation,
             vit_arch=args.vit_architecture,
             vit_kwargs={
-                "img_size": args.input_size,
+                "img_size": args.input_size[1:],
                 "num_classes": args.vit_classes,
                 "drop_path_rate": args.vit_drop,
                 "global_pool": args.vit_non_global_pool
@@ -190,7 +190,7 @@ def main():
             balanced_accuracy((probs > 0.5).float(), targets)
             auroc(probs, targets)
 
-            if i + 1 == n_batches:
+            if i == n_batches:
                 break
 
         metrics["MeanLoss/train"] = np.mean(train_losses)
