@@ -4,6 +4,7 @@ version = "0.1.0"
 description = ""
 authors = ["Mason Cleveland <mcleveland2@mgh.harvard.edu>"]
 readme = "README.md"
+package-mode = false
 
 [tool.poetry.dependencies]
 # python = "^3.11"
@@ -27,10 +28,12 @@ readme = "README.md"
 # visidata = "^3.0.2"
 # numpy = "<1.20.0"
 
-python = ">=3.10"
-torch = "<2.0.0"
-torchvision = ">0.9.1"
-torchaudio = ">0.8.1"
+python = ">=3.10, <4"
+torch = ">2"
+torchvision = "*"
+torchaudio = "*"
+torchcam = "*"
+lightning = "*"#1.9.5"
 opencv-python = ">4.5.3.56"
 pandas = ">0.25.3"
 Pillow = ">8.3.1"
