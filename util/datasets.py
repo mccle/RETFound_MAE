@@ -17,12 +17,13 @@ from torchvision.datasets import VisionDataset
 from timm.data.transforms import CenterCropOrPad
 
 class CSVDataset(VisionDataset):
-    def __init__(self, csv, partition, transform=None, target_transform=None):
+    def __init__(self, csv, partition, transform=None, target_transform=None, return_fname=False):
         super(CSVDataset, self).__init__(
             root=None,
             transform=transform,
             target_transform=target_transform
         )
+        self.return_fname = return_fname
 
         df = pd.read_csv(csv, dtype=str)
 
@@ -75,15 +76,18 @@ class CSVDataset(VisionDataset):
         if self.target_transform and label is not None:
             label = self.target_transform(label)
 
+        if self.return_fname:
+            return img, label, file_path
+
         return img, label
 
 
-def build_dataset(partition, args):
+def build_dataset(partition, args, return_fname=False):
 
     is_train = partition == "train"
 
     transform = build_transform(is_train, args)
-    dataset = CSVDataset(csv=args.csv, partition=partition, transform=transform)
+    dataset = CSVDataset(csv=args.csv, partition=partition, transform=transform, return_fname=return_fname)
 
     return dataset
 
