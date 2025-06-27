@@ -21,7 +21,8 @@ def ViTClassifier(
         "global_pool": True
     },
     vit_weights: Path | str | None = '/autofs/space/crater_001/datasets/private/mee_parkinsons/models/RETFound_cfp_weights.pth',
-    freeze_feature_extraction: bool = False
+    freeze_feature_extraction: bool = False,
+    train_img_size = (224, 224)
 ) -> nn.Module:
     model = getattr(models_vit, vit_arch)(**vit_kwargs)
 
@@ -30,23 +31,30 @@ def ViTClassifier(
 
         print(f"Loading ViT weights from {vit_weights}")
         checkpoint_model = checkpoint["model"]
+
+        if hasattr(checkpoint_model, "state_dict"):
+            checkpoint_model = checkpoint_model.state_dict()
+
         state_dict = model.state_dict()
         for k in ["head.weight", "head.bias"]:
             if k in checkpoint_model and checkpoint_model[k].shape != state_dict[k].shape:
                 print(f"Removing key {k} from pretrained checkpoint")
                 del checkpoint_model[k]
 
-        interpolate_pos_embed(model, checkpoint_model, vit_kwargs["img_size"])
+        interpolate_pos_embed(model, checkpoint_model, vit_kwargs["img_size"], train_img_size)
 
         msg = model.load_state_dict(checkpoint_model, strict=False)
+        #
+        # if vit_kwargs.get("global_pool", False):
+        #     assert set(msg.missing_keys) == {"head.weight", "head.bias", "fc_norm.weight", "fc_norm.bias"}
+        # else:
+        #     assert set(msg.missing_keys) == {"head.weight", "head.bias"}
+        #
+        # # manually initialize fc layer
+        # trunc_normal_(model.head.weight, std=2e-5)
 
-        if vit_kwargs.get("global_pool", False):
-            assert set(msg.missing_keys) == {"head.weight", "head.bias", "fc_norm.weight", "fc_norm.bias"}
-        else:
-            assert set(msg.missing_keys) == {"head.weight", "head.bias"}
-
-        # manually initialize fc layer
-        trunc_normal_(model.head.weight, std=2e-5)
+    if hasattr(model, "head") and isinstance(model.head, models_vit.Mlp):
+        return model
 
     classifier_head = models_vit.Mlp(
         in_features=model.head.in_features,
