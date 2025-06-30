@@ -1,26 +1,13 @@
 import argparse
 import torch
-import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
-# import os
-# import csv
 
 from csv import DictWriter
-
-from torch.utils.tensorboard import SummaryWriter
 from util.datasets import build_dataset
 from monai.utils import set_determinism
-from monai.metrics import ConfusionMatrixMetric, ROCAUCMetric
 from models_classifier import ViTClassifier
 from models_vit import TIMMVisionTransformer
 from pathlib import Path
 from tqdm import tqdm
-from torch.utils.data import WeightedRandomSampler
-from torchvision.models import resnet18
-from timm.data.constants import IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD
-from tqdm import tqdm
-
 
 
 # os.environ['TORCH_HOME'] = '/autofs/space/crater_001/datasets/private/mee_parkinsons/models/'
