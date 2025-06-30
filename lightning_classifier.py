@@ -6,7 +6,7 @@ from torchvision.models import resnet18
 from torchmetrics.classification import AUROC, Accuracy
 from lightning.pytorch.loggers import TensorBoardLogger
 from lightning.pytorch import Trainer
-from lightning.pytorch.callbacks import ModelCheckpoint
+from lightning.pytorch.callbacks import ModelCheckpoint, LearningRateMonitor
 
 import argparse
 import torch
@@ -139,15 +139,15 @@ class LightningResNet(L.LightningModule):
 
         self.train_auroc.update(logits, targets)
         self.train_acc.update(logits, targets)
-        self.log("train/loss", loss, on_step=False, on_epoch=True)
+        self.log("train_loss", loss, on_step=False, on_epoch=True)
 
         return loss
 
     def on_train_epoch_end(self):
-        self.log("train/auroc", self.train_auroc.compute(), prog_bar=True)
+        self.log("train_auroc", self.train_auroc.compute(), prog_bar=True)
         self.train_auroc.reset()
 
-        self.log("train/acc", self.train_acc.compute(), prog_bar=True)
+        self.log("train_acc", self.train_acc.compute(), prog_bar=True)
         self.train_acc.reset()
 
 
@@ -160,15 +160,15 @@ class LightningResNet(L.LightningModule):
 
         self.val_auroc.update(logits, targets)
         self.val_acc.update(logits, targets)
-        self.log("val/loss", loss, on_step=False, on_epoch=True)
+        self.log("val_loss", loss, on_step=False, on_epoch=True)
 
         return loss
 
     def on_validation_epoch_end(self):
-        self.log("val/auroc", self.val_auroc.compute(), prog_bar=True)
+        self.log("val_auroc", self.val_auroc.compute(), prog_bar=True)
         self.val_auroc.reset()
 
-        self.log("val/acc", self.val_acc.compute(), prog_bar=True)
+        self.log("val_acc", self.val_acc.compute(), prog_bar=True)
         self.val_acc.reset()
 
 
@@ -251,16 +251,18 @@ def main():
 
     checkpoint_callback = ModelCheckpoint(
         checkpoint_dir,
-        monitor="val/auroc",
+        monitor="val_auroc",
         mode="max",
         save_top_k=3,
-        filename="{epoch:02d}-{auroc:.4f}"
+        filename="{epoch:02d}-{val_auroc:.4f}"
     )
+
+    lr_callback = LearningRateMonitor(logging_interval="epoch")
 
     trainer = Trainer(
         max_epochs=args.epochs,
         logger=tb_writer,
-        callbacks=[checkpoint_callback],
+        callbacks=[checkpoint_callback, lr_callback],
         log_every_n_steps=1,
         accelerator="gpu",
         devices=[0],
