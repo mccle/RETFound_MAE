@@ -1,5 +1,6 @@
 import argparse
 import torch
+import numpy as np
 
 from csv import DictWriter
 from util.datasets import build_dataset
@@ -74,10 +75,12 @@ parser.add_argument('--mixup-mode', type=str, default='batch', help='How to appl
 def main():
     args = parser.parse_args()
 
-    checkpoints = list(args.checkpoint_dir.glob("**/*.pt"))
+    checkpoints = list(args.checkpoint_dir.glob("**/*.pt*"))
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     models = [torch.load(checkpoint, map_location="cpu")["model"].to(device).eval() for checkpoint in checkpoints]
+
+    args.output_csv.parent.mkdir(exist_ok=True, parents=True)
 
     for i, (checkpoint, model) in enumerate(zip(checkpoints, models)):
         if isinstance(model, TIMMVisionTransformer):
@@ -130,7 +133,12 @@ def main():
             for (row, out, label, name) in zip(rows, outputs, labels, names):
                 row["jpgfile"] = name
                 row["label"] = label.item()
-                row[str(checkpoint)] = out.item()
+
+                if np.prod(out.shape) > 1:
+                    row[str(checkpoint)] = out.tolist()
+
+                else:
+                    row[str(checkpoint)] = out.item()
 
 
         writer.writerows(rows)
